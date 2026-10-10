@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.env.*
+*.log
+*.exe
+*.dll
+*.pdb
+*.mdb
+bin/
+obj/
+Saves/
+Backups/
+Logs/
+client-data/
+CONNECTION.md

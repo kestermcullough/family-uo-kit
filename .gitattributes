@@ -1,0 +1,2 @@
+# Preserve patch bytes (upstream includes CRLF); context lines aren't source whitespace errors.
+*.patch -text -whitespace

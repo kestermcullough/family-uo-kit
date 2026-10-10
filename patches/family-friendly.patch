@@ -1,0 +1,273 @@
+diff --git a/Config/Accounts.cfg b/Config/Accounts.cfg
+index 5290da7..5eecaaf 100644
+--- a/Config/Accounts.cfg
++++ b/Config/Accounts.cfg
+@@ -1,6 +1,6 @@
+ 
+ # Number of accounts allowed to be created from a single IP address
+-AccountsPerIp=1
++AccountsPerIp=10
+ 
+ # If true accounts will be automatically created on first login
+ AutoCreateAccounts=True
+@@ -22,4 +22,4 @@ PasswordCommandEnabled=False
+ # Default: NewCrypt
+ # Options: None, Crypt, NewCrypt (Default), NewSecureCrypt (Recommended)
+ # Explanation: Plain, MD5, SHA1, SHA512
+-ProtectPasswords=NewCrypt
++ProtectPasswords=NewSecureCrypt
+diff --git a/Config/AutoSave.cfg b/Config/AutoSave.cfg
+index 68d68b1..65088a4 100644
+--- a/Config/AutoSave.cfg
++++ b/Config/AutoSave.cfg
+@@ -19,7 +19,7 @@ WarningTime=00:00:00:15
+ 
+ # Enable or disable the Save Archives feature
+ # Default: False
+-ArchivesEnabled=False
++ArchivesEnabled=True
+ 
+ # Enable or disable background archiving
+ # When disabled, archiving will increase world save times
+@@ -39,9 +39,9 @@ ArchivesExpire=30:00:00:00
+ # with each archive containing the last save of that hour, etc
+ # Values: Months, Days, Hours, Minutes
+ # Default: Minutes
+-ArchivesMerging=Minutes
++ArchivesMerging=Hours
+ 
+ # The directory the archives will be saved in
+ # Leave blank to save in \Backups\Archived
+ # Default: [blank]
+-ArchivesPath=
+\ No newline at end of file
++ArchivesPath=
+diff --git a/Config/Compiler.cfg b/Config/Compiler.cfg
+index 151b168..e1d1122 100644
+--- a/Config/Compiler.cfg
++++ b/Config/Compiler.cfg
+@@ -1,4 +1,4 @@
+ 
+ # Forces scripts to be compiled at runtime.
+ # This is a legacy feature that was originally provided by the core.
+-Dynamic=True
+\ No newline at end of file
++Dynamic=False
+diff --git a/Config/DataPath.cfg b/Config/DataPath.cfg
+index 7bfbaaa..6cbeb5f 100644
+--- a/Config/DataPath.cfg
++++ b/Config/DataPath.cfg
+@@ -2,4 +2,4 @@
+ # custom data path. Otherwise ServUO will look for the client in the default
+ # Windows installation directories. Note that this is *required* when running
+ # on non-Windows systems.
+-#CustomPath=C:\Program Files (x86)\Electronic Arts\Ultima Online Classic
++#CustomPath=/absolute/path/to/your/uo-client-data
+diff --git a/Config/Server.cfg b/Config/Server.cfg
+index af03a6e..0100360 100644
+--- a/Config/Server.cfg
++++ b/Config/Server.cfg
+@@ -1,6 +1,6 @@
+ 
+ # The displayed name of the shard
+-Name=My Shard
++Name=Family Shard
+ 
+ # The internal IP address to listen on.
+ # You can leave this value as default to listen to all available IP's.
+@@ -13,4 +13,4 @@ Name=My Shard
+ 
+ # The Port to bind the Listener to.
+ # Default: 2593
+-@Port=2593
+\ No newline at end of file
++@Port=2593
+diff --git a/Scripts/Accounting/AccountHandler.cs b/Scripts/Accounting/AccountHandler.cs
+index fe7adc8..7d94336 100644
+--- a/Scripts/Accounting/AccountHandler.cs
++++ b/Scripts/Accounting/AccountHandler.cs
+@@ -521,7 +521,17 @@ namespace Server.Misc
+ 
+             Account a = new Account(un, pw);
+ 
++            // A fresh family shard should not require console access to create
++            // its first administrator. Only the very first account is promoted.
++            if (Accounts.Count == 1)
++            {
++                a.AccessLevel = AccessLevel.Owner;
++                Utility.PushColor(ConsoleColor.Cyan);
++                Console.WriteLine("Account '{0}' is the first account and has been promoted to Owner.", un);
++                Utility.PopColor();
++            }
++
+             return a;
+         }
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Scripts/Mobiles/Normal/BaseCreature.cs b/Scripts/Mobiles/Normal/BaseCreature.cs
+index d7a016d..fa3b27a 100644
+--- a/Scripts/Mobiles/Normal/BaseCreature.cs
++++ b/Scripts/Mobiles/Normal/BaseCreature.cs
+@@ -1582,7 +1582,7 @@ namespace Server.Mobiles
+                 chance = 990;
+             }
+ 
+-            chance -= (MaxLoyalty - m_Loyalty) * 10;
++            chance -= (MaxLoyalty - Loyalty) * 10;
+ 
+             return ((double)chance / 1000);
+         }
+@@ -1724,7 +1724,11 @@ namespace Server.Mobiles
+         }
+ 
+         [CommandProperty(AccessLevel.GameMaster)]
+-        public int Loyalty { get { return m_Loyalty; } set { m_Loyalty = Math.Min(Math.Max(value, 0), MaxLoyalty); } }
++        public int Loyalty
++        {
++            get { return FamilyPetBonding.HasPerfectCare(this) ? MaxLoyalty : m_Loyalty; }
++            set { m_Loyalty = FamilyPetBonding.HasPerfectCare(this) ? MaxLoyalty : Math.Min(Math.Max(value, 0), MaxLoyalty); }
++        }
+ 
+         [CommandProperty(AccessLevel.GameMaster)]
+         public WayPoint CurrentWayPoint { get { return m_CurrentWayPoint; } set { m_CurrentWayPoint = value; } }
+@@ -3460,7 +3464,22 @@ namespace Server.Mobiles
+         public IDamageable FocusMob { get; set; }
+ 
+         [CommandProperty(AccessLevel.GameMaster)]
+-        public FightMode FightMode { get { return m_FightMode; } set { m_FightMode = value; } }
++        public FightMode FightMode
++        {
++            get
++            {
++                // Family shard mode: wild creatures never initiate combat, but
++                // they may defend themselves after being attacked. Controlled
++                // pets retain their normal fight mode and obey player commands.
++                if (Config.Get("Family.PeacefulMobs", true) && !Controlled)
++                {
++                    return FightMode.Aggressor;
++                }
++
++                return m_FightMode;
++            }
++            set { m_FightMode = value; }
++        }
+ 
+         [CommandProperty(AccessLevel.GameMaster)]
+         public int RangePerception { get { return m_iRangePerception; } set { m_iRangePerception = value; } }
+@@ -3524,6 +3543,7 @@ namespace Server.Mobiles
+                 }
+ 
+                 m_bControlled = value;
++                FamilyPetBonding.TryBond(this);
+                 Delta(MobileDelta.Noto);
+ 
+                 InvalidateProperties();
+@@ -3703,6 +3723,7 @@ namespace Server.Mobiles
+                 RemoveFollowers();
+                 m_ControlMaster = value;
+                 AddFollowers();
++                FamilyPetBonding.TryBond(this);
+                 if (m_ControlMaster != null)
+                 {
+                     StopDeleteTimer();
+@@ -7913,6 +7934,16 @@ namespace Server.Mobiles
+                     {
+                         BaseCreature c = (BaseCreature)m;
+ 
++                        if (FamilyPetBonding.HasPerfectCare(c))
++                        {
++                            c.Loyalty = BaseCreature.MaxLoyalty;
++                            c.Hunger = 20;
++                            c.Thirst = 20;
++                            c.OwnerAbandonTime = DateTime.MinValue;
++                            c.RemoveStep = 0;
++                            return;
++                        }
++
+                         if (c.IsDeadPet)
+                         {
+                             Mobile owner = c.ControlMaster;
+diff --git a/Scripts/Mobiles/PlayerMobile.cs b/Scripts/Mobiles/PlayerMobile.cs
+index 926020c..7a958ad 100644
+--- a/Scripts/Mobiles/PlayerMobile.cs
++++ b/Scripts/Mobiles/PlayerMobile.cs
+@@ -1265,7 +1265,7 @@ namespace Server.Mobiles
+                 from.Map = Map.Felucca;
+             }
+ 
+-            if (((from.Map == Map.Trammel && from.Region.IsPartOf("Blackthorn Castle")) || PointsSystem.FellowshipData.Enabled && from.Region.IsPartOf("BlackthornDungeon") || from.Region.IsPartOf("Ver Lor Reg")) && from.Player && from.AccessLevel == AccessLevel.Player && from.CharacterOut)
++            if (Config.Get("Family.MagicStormRelocation", true) && ((from.Map == Map.Trammel && from.Region.IsPartOf("Blackthorn Castle")) || PointsSystem.FellowshipData.Enabled && from.Region.IsPartOf("BlackthornDungeon") || from.Region.IsPartOf("Ver Lor Reg")) && from.Player && from.AccessLevel == AccessLevel.Player && from.CharacterOut)
+             {
+                 StormLevelGump menu = new StormLevelGump(from);
+                 menu.BeginClose();
+diff --git a/Scripts/Scripts.csproj b/Scripts/Scripts.csproj
+index e6f2d09..bd546ad 100644
+--- a/Scripts/Scripts.csproj
++++ b/Scripts/Scripts.csproj
+@@ -8,8 +8,7 @@
+ 		<GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+ 		<UseVSHostingProcess>False</UseVSHostingProcess>
+ 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+-		<UseWindowsForms>True</UseWindowsForms>
+-		<Platforms>x64</Platforms>
++		<Platforms>x64</Platforms>
+ 	</PropertyGroup>
+ 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+ 		<OutputPath>..\</OutputPath>
+@@ -21,9 +20,10 @@
+ 		<DefineConstants>TRACE;NEWTIMERS;ServUO</DefineConstants>
+ 		<DebugType>none</DebugType>
+ 	</PropertyGroup>
+-	<ItemGroup>
+-		<Reference Include="System.Web" />
+-	</ItemGroup>
++	<ItemGroup>
++		<Reference Include="System.Web" />
++		<Reference Include="System.Windows.Forms" />
++	</ItemGroup>
+ 	<ItemGroup>
+ 		<ProjectReference Include="..\Server\Server.csproj" />
+ 		<ProjectReference Include="..\Ultima\Ultima.csproj" />
+@@ -31,4 +31,4 @@
+ 	<ItemGroup>
+ 		<PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+ 	</ItemGroup>
+-</Project>
+\ No newline at end of file
++</Project>
+diff --git a/Scripts/Services/Harvest/Mining.cs b/Scripts/Services/Harvest/Mining.cs
+index dc66ca3..99d22d6 100644
+--- a/Scripts/Services/Harvest/Mining.cs
++++ b/Scripts/Services/Harvest/Mining.cs
+@@ -288,7 +288,7 @@ namespace Server.Engines.Harvest
+                 OnBadHarvestTarget(from, tool, toHarvest);
+                 return false;
+             }
+-            else if (from.Mounted)
++            else if (from.Mounted && !Config.Get("Family.MountedMining", false))
+             {
+                 from.SendLocalizedMessage(501864); // You can't mine while riding.
+                 return false;
+diff --git a/Server/Main.cs b/Server/Main.cs
+index c0814be..7f05004 100644
+--- a/Server/Main.cs
++++ b/Server/Main.cs
+@@ -451,7 +451,15 @@ namespace Server
+ 			Process = Process.GetCurrentProcess();
+ 			Assembly = Assembly.GetEntryAssembly();
+ 
+-            Process.PriorityClass = ProcessPriorityClass.High;
++            // Setting process priority is not supported by Mono on macOS and
++            // throws before the Unix runtime check below can run.
++            try
++            {
++                Process.PriorityClass = ProcessPriorityClass.High;
++            }
++            catch (System.ComponentModel.Win32Exception)
++            {
++            }
+ 
+ 			if (Thread != null)
+ 			{
