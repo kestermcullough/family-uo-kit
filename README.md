@@ -23,16 +23,23 @@ Use in-game as Owner/GM; creation, saving/restarting, and world setup require th
 | `[Who` | Select online player: **Go to them** / **Bring them here**. |
 | `[Tele` / `[Move` / `[Go` | Teleport to clicked spot / move targeted object or creature / destinations menu. |
 | `[Set Movable False` / `[Set Movable True` | Prevent pickup and normal ground decay / undo; save afterward. |
+| `[Set LiftOverride True` | Let players deposit/withdraw from an immovable world container; no owner needed. |
+| `[Set Locked False` | Unlock a lockable chest for shared access. |
 | `[Set IsBonded True` | Manually bond a targeted pet; normally unnecessary with this kit. |
 | `[Add AnimalTrainer` | Place a stable NPC where convenient. |
 | `[Add EtherealHorse` | Backpack mount statue: double-click to ride, dismount to pack away. |
 | `[Add HitchingPost` | House stabling; lock it down, then say `stable` / `claim`. |
 | `[Set UsesRemaining 1000000` | Give a targeted hitching post many uses. |
 | `I wish to lock this down` | House-owner speech: target an item in your house. |
+| `I wish to secure this` | Secure a house container; use its context menu to choose access permissions. |
 | `all stay` | Park pets; not protection from attacks. |
 | `stable` / `claim` | Stable/retrieve pets near a trainer or locked-down house hitching post. |
 
 World setup already runs `[Decorate`, `[DoorGen`, and `[XmlLoad Spawns`; don't run them separately unless needed. `[DeleteWorld` removes generated content—**destructive**. CreateWorld tracks generated sections, but separate generators can duplicate content.
+
+**Shared world chest:** `[Add` → place container → `[Set Movable False` → `[Set LiftOverride True` → optionally `[Set Locked False` → `[Save`. Target the chest after each Set command. Use house security instead for restricted access.
+
+**Mining hotkeys (client-side):** bind **Last Object** and **Last Target** in ClassicUO/Razor. Use the pickaxe and target a valid tile once, then reuse those actions until depleted. Keys depend on your profile; no server-side area mining is included.
 
 ## Changes / custom features
 
@@ -42,6 +49,7 @@ Defaults in [`Config/Family.cfg`](Config/Family.cfg):
 - **Instant bonding:** eligible player pets bond on taming/transfer and startup, including existing pets. Summons and unbondable creatures excluded.
 - **Perfect pet care:** maximum loyalty, hunger/thirst reset on acquisition/startup and hourly maintenance, no loyalty loss or dead-pet abandonment. Feeding isn't required for loyalty; normal control-skill checks and combat still apply.
 - **Every skill to 120:** individual caps of 120 with a total cap far above all skills combined. Applied to existing characters on startup/login; skills aren't automatically raised.
+- **10× player skill gains:** `SkillGainMultiplier=10` multiplies gain amounts (normally +0.1 → +1.0), not success chance, pet gains, or stat gains. Existing eligibility checks/bonuses remain; gains stop at the skill cap.
 - **Mounted mining:** mine without dismounting. No automatic area/self-target mining added.
 - **No Magic Storm relocation:** disables the login-time evacuation popup in the affected regions.
 

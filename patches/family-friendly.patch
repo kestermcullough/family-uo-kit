@@ -125,6 +125,44 @@ index fe7adc8..7d94336 100644
 -}
 \ No newline at end of file
 +}
+diff --git a/Scripts/Misc/SkillCheck.cs b/Scripts/Misc/SkillCheck.cs
+index 4cdecb7..96fd0ed 100644
+--- a/Scripts/Misc/SkillCheck.cs
++++ b/Scripts/Misc/SkillCheck.cs
+@@ -361,6 +361,17 @@ namespace Server.Misc
+             Gain(from, skill, (int)(from.Region.SkillGain(from) * 10));
+         }
+ 
++        private static int ScaleFamilySkillGain(Mobile from, int toGain)
++        {
++            if (from is PlayerMobile)
++            {
++                int multiplier = Math.Min(100, Math.Max(1, Config.Get("Family.SkillGainMultiplier", 1)));
++                return (int)Math.Min(int.MaxValue, (long)toGain * multiplier);
++            }
++
++            return toGain;
++        }
++
+         public static void Gain(Mobile from, Skill skill, int toGain)
+ 		{
+ 			if (from.Region.IsPartOf<Jail>())
+@@ -379,6 +390,7 @@ namespace Server.Misc
+ 
+ 				if (from is PlayerMobile && Siege.SiegeShard)
+ 				{
++                    toGain = Math.Min(ScaleFamilySkillGain(from, toGain), skill.CapFixedPoint - skill.BaseFixedPoint);
+ 					var minsPerGain = Siege.MinutesPerGain(from, skill);
+ 
+ 					if (minsPerGain > 0)
+@@ -438,6 +450,7 @@ namespace Server.Misc
+ 
+ 				if (from is PlayerMobile)
+ 				{
++                    toGain = Math.Min(ScaleFamilySkillGain(from, toGain), skill.CapFixedPoint - skill.BaseFixedPoint);
+ 					CheckReduceSkill(skills, toGain, skill);
+ 				}
+ 
 diff --git a/Scripts/Mobiles/Normal/BaseCreature.cs b/Scripts/Mobiles/Normal/BaseCreature.cs
 index d7a016d..fa3b27a 100644
 --- a/Scripts/Mobiles/Normal/BaseCreature.cs
