@@ -63,6 +63,25 @@ index 7bfbaaa..6cbeb5f 100644
  # on non-Windows systems.
 -#CustomPath=C:\Program Files (x86)\Electronic Arts\Ultima Online Classic
 +#CustomPath=/absolute/path/to/your/uo-client-data
+diff --git a/Config/PlayerCaps.cfg b/Config/PlayerCaps.cfg
+index cc05ebe..8391c94 100644
+--- a/Config/PlayerCaps.cfg
++++ b/Config/PlayerCaps.cfg
+@@ -6,11 +6,12 @@
+ 
+ # Sets the default individual skill cap. Since skills have a decimal value
+ # they also need to have a decimal value added to their skillcap
+-SkillCap=1000
++SkillCap=1200
+ 
+ # Sets the default total skill cap. Since skills have a decimal value
+ # they also need to have a decimal value added to their skillcap
+-TotalSkillCap=7000
++# Far above the combined maximum of every skill at 120 (effectively uncapped).
++TotalSkillCap=1000000
+ 
+ # The total stat cap
+ TotalStatCap=225
 diff --git a/Config/Server.cfg b/Config/Server.cfg
 index af03a6e..0100360 100644
 --- a/Config/Server.cfg

@@ -41,6 +41,7 @@ Defaults in [`Config/Family.cfg`](Config/Family.cfg):
 - **Peaceful mobs:** wild creatures don't initiate normal combat; may retaliate. Pets still obey attack orders. Not invulnerability or protection from every scripted encounter.
 - **Instant bonding:** eligible player pets bond on taming/transfer and startup, including existing pets. Summons and unbondable creatures excluded.
 - **Perfect pet care:** maximum loyalty, hunger/thirst reset on acquisition/startup and hourly maintenance, no loyalty loss or dead-pet abandonment. Feeding isn't required for loyalty; normal control-skill checks and combat still apply.
+- **Every skill to 120:** individual caps of 120 with a total cap far above all skills combined. Applied to existing characters on startup/login; skills aren't automatically raised.
 - **Mounted mining:** mine without dismounting. No automatic area/self-target mining added.
 - **No Magic Storm relocation:** disables the login-time evacuation popup in the affected regions.
 
